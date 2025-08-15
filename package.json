@@ -1,0 +1,26 @@
+{
+  "name": "wynn-api-automation",
+  "version": "1.0.0",
+  "description": "Playwright TypeScript API Automation Framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:debug": "npx playwright test --debug",
+    "test:ui": "npx playwright test --ui",
+    "report": "npx playwright show-report",
+    "compile": "npx tsc",
+    "clean": "rm -rf test-results playwright-report"
+  },
+  "keywords": ["playwright", "automation", "api", "testing", "typescript"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@playwright/test": "^1.54.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2"
+  }
+}
