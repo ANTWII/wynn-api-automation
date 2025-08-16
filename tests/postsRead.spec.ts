@@ -1,8 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { logger } from '../utils/logger';
+import { apiDataExtractor } from '../utils/apiDataExtractor';
 import { postsReadService } from '../services/postsReadService';
 
 test.describe('Posts Read API Tests', () => {
+  let extractedPostId: number;
+  let extractedUserId: number;
+
+  test.beforeAll(async () => {
+    logger.info('Extracting real data from JSONPlaceholder API for Read tests...');
+    
+    // Initialize data extractor
+    await apiDataExtractor.extractPostsData();
+    
+    // Get a real post to use for testing
+    const realPost = apiDataExtractor.getRandomPostData();
+    extractedPostId = realPost.postId;
+    extractedUserId = realPost.userId;
+    
+    logger.info(`Extracted real data: PostID=${extractedPostId}, UserID=${extractedUserId}`);
+  });
 
   test('Verify GET /posts returns all posts successfully', { tag: ["@smoke", "@regression"] }, async () => {
     logger.info('Starting test: Verify GET /posts returns all posts successfully');
@@ -24,20 +41,21 @@ test.describe('Posts Read API Tests', () => {
   });
 
   test('Verify GET /posts/{id} returns specific post successfully', { tag: ["@smoke", "@regression"] }, async () => {
-    logger.info('Starting test: Verify GET /posts/{id} returns specific post successfully');
+    logger.info(`Starting test: Verify GET /posts/${extractedPostId} returns specific post successfully`);
     
     try {
-      const postId = 1;
-      const result = await postsReadService.getPostById(postId);
+      const result = await postsReadService.getPostById(extractedPostId);
       
       expect(result.response.status()).toBe(200);
-      expect(result.data.id).toBe(postId);
+      expect(result.data.id).toBe(extractedPostId);
       
       // Validate post structure
       await postsReadService.validatePostStructure(result.data);
       
+      logger.info(`Successfully retrieved post: ID=${extractedPostId}, UserID=${result.data.userId}`);
+      
     } catch (error) {
-      logger.error('Test failed: Verify GET /posts/{id} returns specific post successfully', error as Error);
+      logger.error(`Test failed: Verify GET /posts/${extractedPostId} returns specific post successfully`, error as Error);
       throw error;
     }
   });

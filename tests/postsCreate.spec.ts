@@ -1,10 +1,25 @@
 import { test, expect } from '@playwright/test';
 import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
+import { apiDataExtractor } from '../utils/apiDataExtractor';
 import { postsCreateService } from '../services/postsCreateService';
 import { PostCreatePayload } from '../requests/postsCreateRequests';
 
 test.describe('Posts Create API Tests', () => {
+  let extractedUserId: number;
+
+  test.beforeAll(async () => {
+    logger.info('Extracting real data from JSONPlaceholder API for Create tests...');
+    
+    // Initialize data extractor
+    await apiDataExtractor.extractPostsData();
+    
+    // Get a real user ID to use for testing
+    const realPost = apiDataExtractor.getRandomPostData();
+    extractedUserId = realPost.userId;
+    
+    logger.info(`Extracted real data: UserID=${extractedUserId}`);
+  });
 
   test('Verify POST /posts creates new post successfully', { tag: ["@smoke", "@regression"] }, async () => {
     logger.info('Starting test: Verify POST /posts creates new post successfully');
@@ -16,7 +31,7 @@ test.describe('Posts Create API Tests', () => {
       const payload: PostCreatePayload = {
         title: testTitle,
         body: testBody,
-        userId: 1
+        userId: extractedUserId
       };
       
       const result = await postsCreateService.createPost(payload);
@@ -43,7 +58,7 @@ test.describe('Posts Create API Tests', () => {
       const payload: PostCreatePayload = {
         title: testTitle,
         body: testBody,
-        userId: 2
+        userId: extractedUserId
       };
       
       const result = await postsCreateService.createPost(payload);
@@ -67,7 +82,7 @@ test.describe('Posts Create API Tests', () => {
       const payload: PostCreatePayload = {
         title: longTitle,
         body: longBody,
-        userId: 3
+        userId: extractedUserId
       };
       
       const result = await postsCreateService.createPost(payload);
@@ -91,7 +106,7 @@ test.describe('Posts Create API Tests', () => {
       const payload: PostCreatePayload = {
         title: specialTitle,
         body: specialBody,
-        userId: 4
+        userId: extractedUserId
       };
       
       const result = await postsCreateService.createPost(payload);

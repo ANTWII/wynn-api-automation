@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
+import { apiDataExtractor } from '../utils/apiDataExtractor';
 import { postsCreateService } from '../services/postsCreateService';
 import { postsReadService } from '../services/postsReadService';
 import { postsUpdateService } from '../services/postsUpdateService';
@@ -8,46 +9,27 @@ import { postsDeleteService } from '../services/postsDeleteService';
 import { PostCreatePayload } from '../requests/postsCreateRequests';
 import { PostUpdatePayload, PostFullUpdatePayload } from '../requests/postsUpdateRequests';
 
-// Store created post IDs for reuse across tests
-let createdPostIds: number[] = [];
+// Store extracted post data for reuse across tests
+let extractedPostIds: number[] = [];
+let extractedUserIds: number[] = [];
 
 test.describe('Posts CRUD Integration Tests', () => {
 
   test.beforeAll(async () => {
-    logger.info('Setting up test data: Creating posts for integration tests');
+    logger.info('Extracting real data from JSONPlaceholder API for CRUD Integration tests...');
     
-    // Create multiple posts that will be used across different tests
-    const postsToCreate = [
-      {
-        title: faker.lorem.sentence(8),
-        body: faker.lorem.paragraphs(2),
-        userId: 1
-      },
-      {
-        title: faker.lorem.sentence(6),
-        body: faker.lorem.paragraph(),
-        userId: 2
-      },
-      {
-        title: faker.lorem.sentence(10),
-        body: faker.lorem.paragraphs(3),
-        userId: 3
-      }
-    ];
-
-    try {
-      for (const postPayload of postsToCreate) {
-        const result = await postsCreateService.createPost(postPayload as PostCreatePayload);
-        expect(result.response.status()).toBe(201);
-        createdPostIds.push(result.data.id);
-        logger.info(`Created post with ID: ${result.data.id}`);
-      }
-      
-      logger.info(`Successfully created ${createdPostIds.length} posts for integration tests`);
-    } catch (error) {
-      logger.error('Failed to create test posts in beforeAll', error as Error);
-      throw error;
-    }
+    // Initialize data extractor
+    await apiDataExtractor.extractPostsData();
+    
+    // Get multiple real posts to use for testing
+    const realPost1 = apiDataExtractor.getRandomPostData();
+    const realPost2 = apiDataExtractor.getRandomPostData(); 
+    const realPost3 = apiDataExtractor.getRandomPostData();
+    
+    extractedPostIds = [realPost1.postId, realPost2.postId, realPost3.postId];
+    extractedUserIds = [realPost1.userId, realPost2.userId, realPost3.userId];
+    
+    logger.info(`Extracted real data: PostIDs=[${extractedPostIds.join(', ')}], UserIDs=[${extractedUserIds.join(', ')}]`);
   });
 
   test('Verify POST /posts creates and stores new post successfully', { tag: ["@smoke", "@integration"] }, async () => {
@@ -72,7 +54,7 @@ test.describe('Posts CRUD Integration Tests', () => {
       expect(result.data.userId).toBe(payload.userId);
       
       // Store the created post ID for potential use in other tests
-      createdPostIds.push(result.data.id);
+      // Note: Using extracted post IDs instead for consistency
       
     } catch (error) {
       logger.error('Test failed: Verify POST /posts creates and stores new post successfully', error as Error);
@@ -84,8 +66,8 @@ test.describe('Posts CRUD Integration Tests', () => {
     logger.info('Starting test: Verify GET /posts/{id} retrieves the created post by stored ID');
     
     try {
-      // Use the third created post ID for read operations
-      const storedPostId = createdPostIds[2];
+      // Use the third extracted post ID for read operations
+      const storedPostId = extractedPostIds[2];
       expect(storedPostId).toBeGreaterThan(0);
       
       const result = await postsReadService.getPostById(storedPostId);
@@ -107,8 +89,8 @@ test.describe('Posts CRUD Integration Tests', () => {
     logger.info('Starting test: Verify PUT /posts/{id} updates the created post using stored ID');
     
     try {
-      // Use the first created post ID for PUT operations
-      const storedPostId = createdPostIds[0];
+      // Use the first extracted post ID for PUT operations
+      const storedPostId = extractedPostIds[0];
       expect(storedPostId).toBeGreaterThan(0);
       
       const updatedTitle = faker.lorem.sentence(9);
@@ -118,7 +100,7 @@ test.describe('Posts CRUD Integration Tests', () => {
         id: storedPostId,
         title: updatedTitle,
         body: updatedBody,
-        userId: 10
+        userId: extractedUserIds[0]
       };
       
       const result = await postsUpdateService.putPost(storedPostId, fullUpdatePayload);
@@ -140,8 +122,8 @@ test.describe('Posts CRUD Integration Tests', () => {
     logger.info('Starting test: Verify PATCH /posts/{id} partially updates the created post using stored ID');
     
     try {
-      // Use the first created post ID for PATCH operations (same as PUT test)
-      const storedPostId = createdPostIds[0];
+      // Use the first extracted post ID for PATCH operations (same as PUT test)
+      const storedPostId = extractedPostIds[0];
       expect(storedPostId).toBeGreaterThan(0);
       
       const patchTitle = faker.lorem.sentence(8);
@@ -173,8 +155,8 @@ test.describe('Posts CRUD Integration Tests', () => {
     logger.info('Starting test: Verify DELETE /posts/{id} deletes the created post using stored ID');
     
     try {
-      // Use the second created post ID for DELETE operations
-      const storedPostId = createdPostIds[1];
+      // Use the second extracted post ID for DELETE operations
+      const storedPostId = extractedPostIds[1];
       expect(storedPostId).toBeGreaterThan(0);
       
       const result = await postsDeleteService.deletePost(storedPostId);

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { faker } from '@faker-js/faker';
 import { logger } from '../utils/logger';
+import { apiDataExtractor } from '../utils/apiDataExtractor';
 import { postsUpdateService } from '../services/postsUpdateService';
 import { postsCreateService } from '../services/postsCreateService';
 import { postsReadService } from '../services/postsReadService';
@@ -9,23 +10,28 @@ import { PostUpdatePayload, PostFullUpdatePayload } from '../requests/postsUpdat
 
 test.describe('Posts Update API Tests', () => {
   let testPostId: number;
-  let testUserId: number = 1;
+  let extractedUserId: number;
+  let extractedPostId: number;
+
+  test.beforeAll(async () => {
+    logger.info('Extracting real data from JSONPlaceholder API for Update tests...');
+    
+    // Initialize data extractor
+    await apiDataExtractor.extractPostsData();
+    
+    // Get a real post to use for testing
+    const realPost = apiDataExtractor.getRandomPostData();
+    extractedPostId = realPost.postId;
+    extractedUserId = realPost.userId;
+    
+    logger.info(`Extracted real data: PostID=${extractedPostId}, UserID=${extractedUserId}`);
+  });
 
   test.beforeEach(async () => {
-    // Create a test post before each update test
-    logger.info('Creating test post for update operations');
-    
-    const createPayload: PostCreatePayload = {
-      title: faker.lorem.sentence(6),
-      body: faker.lorem.paragraphs(2),
-      userId: testUserId
-    };
-
-    const createResult = await postsCreateService.createPost(createPayload);
-    expect(createResult.response.status()).toBe(201);
-    testPostId = createResult.data.id;
-    
-    logger.info(`Created test post with ID: ${testPostId} for update testing`);
+    // For update tests, we'll use the extracted real post ID instead of creating new ones
+    // since JSONPlaceholder doesn't persist created posts
+    testPostId = extractedPostId;
+    logger.info(`Using extracted post ID: ${testPostId} for update operations`);
   });
 
   test('Verify PUT /posts/{id} completely replaces post content', { tag: ["@smoke", "@regression"] }, async () => {
@@ -70,7 +76,7 @@ test.describe('Posts Update API Tests', () => {
         id: testPostId,
         title: longTitle,
         body: longBody,
-        userId: testUserId
+        userId: extractedUserId
       };
       
       const result = await postsUpdateService.putPost(testPostId, putPayload);
@@ -79,7 +85,7 @@ test.describe('Posts Update API Tests', () => {
       expect(result.data.id).toBe(testPostId);
       expect(result.data.title).toBe(longTitle);
       expect(result.data.body).toBe(longBody);
-      expect(result.data.userId).toBe(testUserId);
+      expect(result.data.userId).toBe(extractedUserId);
       
       logger.info(`Successfully updated post ${testPostId} with long content via PUT`);
       
@@ -103,7 +109,7 @@ Line breaks and symbols: <>&"'`;
         id: testPostId,
         title: specialTitle,
         body: specialBody,
-        userId: testUserId
+        userId: extractedUserId
       };
       
       const result = await postsUpdateService.putPost(testPostId, putPayload);
@@ -112,7 +118,7 @@ Line breaks and symbols: <>&"'`;
       expect(result.data.id).toBe(testPostId);
       expect(result.data.title).toBe(specialTitle);
       expect(result.data.body).toBe(specialBody);
-      expect(result.data.userId).toBe(testUserId);
+      expect(result.data.userId).toBe(extractedUserId);
       
       logger.info(`Successfully updated post ${testPostId} with special characters via PUT`);
       
