@@ -12,14 +12,23 @@
     "compile": "npx tsc",
     "clean": "rm -rf test-results playwright-report"
   },
-  "keywords": ["playwright", "automation", "api", "testing", "typescript"],
+  "keywords": [
+    "playwright",
+    "automation",
+    "api",
+    "testing",
+    "typescript"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@playwright/test": "^1.54.2"
+    "@playwright/test": "^1.54.2",
+    "@types/winston": "^2.4.4",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.9.0",
     "@types/node": "^24.3.0",
     "typescript": "^5.9.2"
   }
