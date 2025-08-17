@@ -13,10 +13,6 @@ on:
 jobs:
   api-tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
     
     steps:
     - uses: actions/checkout@v4
@@ -29,11 +25,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
+    - name: Install Playwright
+      run: npx playwright install
     
     - name: Run Regression Tests
-      run: npx playwright test --project=${{ matrix.browser }} --grep "@regression"
+      run: npx playwright test --grep "@regression"
       env:
         CI: true
     
@@ -41,7 +37,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: api-test-results-${{ matrix.browser }}
+        name: api-test-results
         path: |
           playwright-report/
           test-results/
@@ -51,7 +47,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: api-test-traces-${{ matrix.browser }}
+        name: api-test-traces
         path: test-results/
         retention-days: 7
 
@@ -67,13 +63,13 @@ jobs:
         echo "## Test Configuration" >> $GITHUB_STEP_SUMMARY
         echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Browsers**: chromium, firefox, webkit" >> $GITHUB_STEP_SUMMARY
-        echo "- **Test Suite**: All API tests" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Focus**: Regression API tests only" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Suite**: JSONPlaceholder API validation" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         
         # Check for failures based on job status
         if [[ "${{ needs.api-tests.result }}" == "success" ]]; then
-          echo "✅ All API tests passed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All regression API tests passed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
         else
-          echo "❌ Some API tests failed. Check the individual browser reports for details." >> $GITHUB_STEP_SUMMARY
+          echo "❌ Some regression API tests failed. Check the test reports for details." >> $GITHUB_STEP_SUMMARY
         fi
