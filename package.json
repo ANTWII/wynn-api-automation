@@ -5,9 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "test:headed": "npx playwright test --headed",
+    "test:api": "npx playwright test tests/",
     "test:debug": "npx playwright test --debug",
-    "test:ui": "npx playwright test --ui",
     "report": "npx playwright show-report",
     "compile": "npx tsc",
     "clean": "rm -rf test-results playwright-report"

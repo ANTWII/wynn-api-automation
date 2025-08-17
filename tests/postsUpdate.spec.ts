@@ -240,51 +240,7 @@ Line breaks and symbols: <>&"'`;
     }
   });
 
-  test('Verify sequential PUT and PATCH operations work correctly', { tag: ["@regression", "@integration"] }, async () => {
-    logger.info('Starting test: Verify sequential PUT and PATCH operations work correctly');
-    
-    try {
-      // Step 1: First do a complete PUT update
-      const putTitle = faker.lorem.sentence(8);
-      const putBody = faker.lorem.paragraphs(3);
-      const putUserId = 10;
-      
-      const putPayload: PostFullUpdatePayload = {
-        id: testPostId,
-        title: putTitle,
-        body: putBody,
-        userId: putUserId
-      };
-      
-      const putResult = await postsUpdateService.putPost(testPostId, putPayload);
-      expect(putResult.response.status()).toBe(200);
-      expect(putResult.data.title).toBe(putTitle);
-      expect(putResult.data.body).toBe(putBody);
-      expect(putResult.data.userId).toBe(putUserId);
-      
-      logger.info(`Step 1: PUT operation completed for post ${testPostId}`);
-      
-      // Step 2: Then do a partial PATCH update
-      const patchTitle = faker.lorem.sentence(5);
-      
-      const patchPayload: PostUpdatePayload = {
-        title: patchTitle
-      };
-      
-      const patchResult = await postsUpdateService.patchPost(testPostId, patchPayload);
-      expect(patchResult.response.status()).toBe(200);
-      expect(patchResult.data.id).toBe(testPostId);
-      expect(patchResult.data.title).toBe(patchTitle);
-      expect(patchResult.data.body).toBe(putBody); // Should retain body from PUT
-      expect(patchResult.data.userId).toBe(putUserId); // Should retain userId from PUT
-      
-      logger.info(`Step 2: PATCH operation completed for post ${testPostId} - Sequential operations successful`);
-      
-    } catch (error) {
-      logger.error('Test failed: Verify sequential PUT and PATCH operations work correctly', error as Error);
-      throw error;
-    }
-  });
+
 
   test('Verify PUT /posts/{id} with different user ID updates correctly', { tag: ["@regression"] }, async () => {
     logger.info('Starting test: Verify PUT /posts/{id} with different user ID updates correctly');

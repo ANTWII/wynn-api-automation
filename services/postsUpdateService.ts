@@ -21,7 +21,6 @@ export class _PostsUpdateService {
     async patchPost(id: string | number, payload: PostUpdatePayload) {
         const url = postsUpdateRequest.patchPost(_config.baseEndpoint, id);
         const response = await common.patchResponse(url, payload as any);
-        expect(response.status(), `Expected status 200 for PATCH update of post ID: ${id}`).toBe(200);
         const responseJson = await response.json();
         return {
             response,

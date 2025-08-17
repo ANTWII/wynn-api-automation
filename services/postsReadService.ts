@@ -19,7 +19,6 @@ export class _PostsReadService {
     // 2. GET /posts/{id} - Get post by ID
     async getPostById(id: string | number) {
         const response = await common.getResponse(postsReadRequest.getPostById(_config.baseEndpoint, id));
-        expect(response.status(), `Expected status 200 for getting post with ID: ${id}`).toBe(200);
         const responseJson = await response.json();
         return {
             response,

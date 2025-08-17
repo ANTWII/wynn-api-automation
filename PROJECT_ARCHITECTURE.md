@@ -6,7 +6,6 @@ This document outlines the architecture and design patterns used in the Wynn API
 
 The framework follows a layered architecture pattern with clear separation of concerns:
 
-- **Authentication Layer** - Handles auth tokens and global setup
 - **Configuration Management** - Dynamic configuration loading
 - **Request Layer** - API URL builders and request handling
 - **Validation Layer** - Response schema validation

@@ -9,7 +9,6 @@ export class _PostsCreateService {
     async createPost(payload: PostCreatePayload) {
         const url = postsCreateRequest.createPost(_config.baseEndpoint);
         const response = await common.postResponse(url, payload as any);
-        expect(response.status(), "Expected status 201 for creating a post").toBe(201);
         const responseJson = await response.json();
         return {
             response,

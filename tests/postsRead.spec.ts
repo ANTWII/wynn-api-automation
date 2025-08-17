@@ -67,7 +67,7 @@ test.describe('Posts Read API Tests', () => {
       const invalidPostId = 999999;
       const result = await postsReadService.getPostById(invalidPostId);
       
-      expect(result.response.status()).toBe(200);
+      expect(result.response.status()).toBe(404);
       expect(result.data).toEqual({});
       
     } catch (error) {

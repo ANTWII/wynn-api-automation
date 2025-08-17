@@ -1,0 +1,58 @@
+name: API Status Badge
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+jobs:
+  api-status:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright
+      run: npx playwright install --with-deps
+    
+    - name: Run API health check
+      id: api-health-check
+      run: |
+        # Run a minimal API test to check API health
+        npx playwright test tests/postsRead.spec.ts --project=chromium || echo "failed=true" >> $GITHUB_OUTPUT
+    
+    - name: Create API status badge
+      run: |
+        if [[ "${{ steps.api-health-check.outputs.failed }}" == "true" ]]; then
+          echo "API_STATUS=failing" >> $GITHUB_ENV
+          echo "BADGE_COLOR=red" >> $GITHUB_ENV
+        else
+          echo "API_STATUS=passing" >> $GITHUB_ENV
+          echo "BADGE_COLOR=brightgreen" >> $GITHUB_ENV
+        fi
+    
+    - name: Update API status
+      if: github.ref == 'refs/heads/main'
+      run: |
+        # This would update an API status badge in README.md
+        # You can implement badge updating logic here
+        if [[ "${{ steps.api-health-check.outputs.failed }}" == "true" ]]; then
+          echo "API Status: failing" > api-status.txt
+        else
+          echo "API Status: passing" > api-status.txt
+        fi
+    
+    - name: Upload API status
+      uses: actions/upload-artifact@v4
+      with:
+        name: api-status
+        path: api-status.txt
+        retention-days: 1

@@ -1,0 +1,174 @@
+name: API Tests CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run API tests every day at 6 AM UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: 'API test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - smoke
+          - regression
+          - crud
+      browser:
+        description: 'Browser engine for API testing'
+        required: true
+        default: 'chromium'
+        type: choice
+        options:
+          - chromium
+          - firefox
+          - webkit
+          - all
+
+jobs:
+  api-tests:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+    
+    - name: Set API test command based on inputs
+      id: test-command
+      run: |
+        BROWSER="${{ github.event.inputs.browser || 'all' }}"
+        TEST_TYPE="${{ github.event.inputs.test_type || 'all' }}"
+        
+        # Set browser filter
+        if [[ "$BROWSER" != "all" && "$BROWSER" != "" ]]; then
+          if [[ "${{ matrix.browser }}" != "$BROWSER" ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+        
+        # Set API test command based on test type
+        case $TEST_TYPE in
+          smoke)
+            echo "command=npx playwright test --project=${{ matrix.browser }} tests/postsRead.spec.ts tests/postsCreate.spec.ts" >> $GITHUB_OUTPUT
+            ;;
+          regression)
+            echo "command=npx playwright test --project=${{ matrix.browser }} tests/postsUpdate.spec.ts tests/postsDelete.spec.ts tests/postsCRUDIntegration.spec.ts" >> $GITHUB_OUTPUT
+            ;;
+          crud)
+            echo "command=npx playwright test --project=${{ matrix.browser }} tests/posts*CRUD*.spec.ts tests/posts*Flow*.spec.ts" >> $GITHUB_OUTPUT
+            ;;
+          all|*)
+            echo "command=npx playwright test --project=${{ matrix.browser }} tests/" >> $GITHUB_OUTPUT
+            ;;
+        esac
+    
+    - name: Run API Tests
+      if: steps.test-command.outputs.skip != 'true'
+      run: ${{ steps.test-command.outputs.command }}
+      env:
+        CI: true
+    
+    - name: Upload API test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: api-test-report-${{ matrix.browser }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+    
+    - name: Upload API test traces on failure
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: api-test-traces-${{ matrix.browser }}
+        path: test-results/
+        retention-days: 7
+
+  # Combine all API test reports into a single summary
+  api-test-summary:
+    if: always()
+    needs: api-tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create API test summary
+      run: |
+        echo "# 🧪 API Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Check if any API tests failed
+        FAILED=false
+        for browser in chromium firefox webkit; do
+          if [[ -d "artifacts/api-test-traces-$browser" ]]; then
+            FAILED=true
+            echo "❌ API tests failed on $browser" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ API tests passed on $browser" >> $GITHUB_STEP_SUMMARY
+          fi
+        done
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [[ "$FAILED" == "true" ]]; then
+          echo "Some API tests failed. Check the individual browser reports for details." >> $GITHUB_STEP_SUMMARY
+        else
+          echo "All API tests passed successfully! 🎉" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## API Test Configuration" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Type**: ${{ github.event.inputs.test_type || 'all' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Browser**: ${{ github.event.inputs.browser || 'all' }}" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Archive combined API test reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: combined-api-test-reports
+        path: artifacts/
+        retention-days: 30
+
+  # Notify on API test failure (optional)
+  notify-api-failure:
+    if: failure() && github.event_name == 'schedule'
+    needs: api-tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create API test failure notification
+      run: |
+        echo "# ⚠️ Scheduled API Tests Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The scheduled API automation tests have failed." >> $GITHUB_STEP_SUMMARY
+        echo "Please check the test results and fix any API issues." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Failed at**: $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "**Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
